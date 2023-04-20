@@ -3,19 +3,63 @@ const global = {
   currentPage: window.location.pathname,
 };
 
-function showSpinner() {
-  const spinner = document.querySelector('.spinner');
-
-  spinner.classList.add('show');
-}
-function hideSpinner() {
-  const spinner = document.querySelector('.spinner');
-
-  spinner.classList.remove('show');
-}
-
 function addCommasToNumber(number) {
   return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+async function displaySlider() {
+  const { results } = await fetchDataFromAPI('movie/now_playing');
+
+  results.forEach((movie) => {
+    const swiperWrapper = document.querySelector('.swiper-wrapper');
+
+    const div = document.createElement('div');
+    div.className = 'swiper-slide';
+    div.innerHTML = `
+
+    <a href="movie-details.html?id=${movie.id}">
+      <img src=${
+        movie.poster_path
+          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+          : `../images/no-image.jpg`
+      }  alt=${movie.original_title} />
+    </a>
+    <h4 class="swiper-rating">
+      <i class="fas fa-star text-secondary"></i> ${
+        Math.round(movie.vote_average * 10) / 10
+      } / 10
+    </h4>
+    `;
+
+    swiperWrapper.appendChild(div);
+    initSwiper();
+  });
+
+  console.log(results);
+}
+
+function initSwiper() {
+  const swiper = new Swiper('.swiper', {
+    slidesPerView: 1,
+    spaceBetween: 30,
+    freeMode: true,
+    loop: true,
+    autoplay: {
+      delay: 4000,
+      disableOnInteraction: false,
+    },
+    breakpoints: {
+      300: {
+        slidesPerView: 2,
+      },
+      700: {
+        slidesPerView: 3,
+      },
+      1200: {
+        slidesPerView: 4,
+      },
+    },
+  });
 }
 
 function displayCoverImage(type, backgroundPath) {
@@ -25,7 +69,7 @@ function displayCoverImage(type, backgroundPath) {
 
   if (type === 'movie') {
     document.querySelector('#movie-details').appendChild(overlayCover);
-  } else if (type === 'show') {
+  } else if (type === 'tv') {
     document.querySelector('#show-details').appendChild(overlayCover);
   }
 }
@@ -70,7 +114,6 @@ async function getPopularTVShows() {
   const res = await fetchDataFromAPI('tv/popular');
 
   const tvShows = res.results;
-  console.log(tvShows);
 
   tvShows.forEach((show) => {
     const card = document.createElement('div');
@@ -110,8 +153,6 @@ async function displayMovieDetails() {
   const movie = await fetchDataFromAPI(`${type}/${movieID}`);
 
   displayCoverImage(type, movie.backdrop_path);
-
-  console.log(movie);
 
   const movieDetailsContainer = document.querySelector('#movie-details');
 
@@ -179,16 +220,91 @@ async function displayMovieDetails() {
   movieDetailsContainer.appendChild(divBottom);
 }
 
+async function displayShowDetails() {
+  const type = 'tv';
+  const showID = window.location.search.split('=')[1];
+
+  const show = await fetchDataFromAPI(`${type}/${showID}`);
+
+  console.log(show);
+
+  displayCoverImage(type, show.backdrop_path);
+
+  const showDetailsContainer = document.querySelector('#show-details');
+
+  const divTop = document.createElement('div');
+  divTop.className = 'details-top';
+
+  const divBottom = document.createElement('div');
+  divBottom.className = 'details-bottom';
+
+  divTop.innerHTML = `
+  <div class='img-container'>
+    <img
+      src=${
+        show.poster_path
+          ? `https://image.tmdb.org/t/p/w500${show.poster_path}`
+          : `../images/no-image.jpg`
+      }
+      class="card-img-top"
+      alt=${show.name}
+    />
+  </div>
+  <div>
+    <h2>${show.name}</h2>
+    <p>
+      <i class="fas fa-star text-primary"></i>
+      ${Math.round(show.vote_average * 10) / 10} / 10
+    </p>
+    <p class="text-muted">Aired: ${show.first_air_date}</p>
+    <p>
+      ${show.overview}
+    </p>
+    <h5>Genres</h5>
+    <ul class="list-group">
+    ${show.genres.map((genre) => `<li>${genre.name}</li>`).join('')}
+
+    </ul>
+    <a href=${show.homepage} target="_blank" class="btn">Visit Show Homepage</a>
+  </div>
+    `;
+
+  divBottom.innerHTML = `
+    <h2>Show Info</h2>
+          <ul>
+
+
+            <li class=${
+              show.created_by.length === 0 ? 'li-hidden' : ''
+            }><span class="text-secondary">Created by:</span> ${
+    show.created_by.length && show.created_by[0].name
+  }</li>
+          
+            <li><span class="text-secondary">Aired:</span> ${
+              show.first_air_date
+            }</li>
+            <li><span class="text-secondary">Seasons:</span> ${
+              show.number_of_seasons
+            }</li>
+          </ul>
+          <h4>Production Companies</h4>
+          <div class="list-group">${show.production_companies
+            .map((company) => `<div>${company.name}</div>`)
+            .join('')}</div>
+
+    `;
+
+  showDetailsContainer.appendChild(divTop);
+  showDetailsContainer.appendChild(divBottom);
+}
+
 async function fetchDataFromAPI(endpoint) {
   const API_KEY = 'b33dca89af6efaab9ad190d254c151dc';
   const API_URL = 'https://api.themoviedb.org/3/';
 
-  // showSpinner();
-
   const response = await fetch(`${API_URL}${endpoint}?api_key=${API_KEY}`);
   const data = await response.json();
 
-  // hideSpinner();
   return data;
 }
 
@@ -209,6 +325,7 @@ function init() {
     case '/':
     case '/index.html':
       getPopularMovies();
+      displaySlider();
       break;
     case '/shows.html':
       getPopularTVShows();
@@ -218,7 +335,7 @@ function init() {
       displayMovieDetails();
       break;
     case '/show-details.html':
-      console.log('TV details');
+      displayShowDetails();
       break;
   }
 
