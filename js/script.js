@@ -7,6 +7,7 @@ const global = {
     type: '',
     page: 1,
     totalPages: 1,
+    totlaResults: 0,
   },
   api: {
     API_KEY: 'b33dca89af6efaab9ad190d254c151dc',
@@ -342,7 +343,7 @@ async function fetchSearchQuery() {
   const API_URL = global.api.API_URL;
 
   const response = await fetch(
-    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&query=${global.search.term}`
+    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&query=${global.search.term}&page=${global.search.page}`
   );
   const data = await response.json();
 
@@ -356,8 +357,9 @@ async function search() {
   global.search.term = urlParams.get('search-term');
 
   if (global.search.term !== '' && global.search.term !== null) {
-    const { results } = await fetchSearchQuery();
-    console.log(results);
+    const { results, total_pages, total_results } = await fetchSearchQuery();
+    global.search.totalPages = total_pages;
+    global.search.totlaResults = total_results;
 
     if (results.length === 0) {
       showAlert('No results found');
@@ -370,16 +372,76 @@ async function search() {
   }
 }
 
+function displayPagination(total_pages) {
+  const paginationContainer = document.querySelector('#pagination');
+
+  const pagination = document.createElement('div');
+  pagination.className = 'pagination';
+
+  pagination.innerHTML = `
+      <button class="btn btn-primary" id="prev">Prev</button>
+      <button class="btn btn-primary" id="next">Next</button>
+      <div class="page-counter">Page ${global.search.page} of ${total_pages}</div>
+  `;
+  paginationContainer.appendChild(pagination);
+  const prevBtn = document.querySelector('#prev');
+  const nextBtn = document.querySelector('#next');
+
+  if (global.search.page === 1) {
+    prevBtn.disabled = true;
+  }
+
+  if (global.search.page === global.search.totalPages) {
+    nextBtn.disabled = true;
+  }
+
+  // Next page
+
+  nextBtn.addEventListener('click', async () => {
+    global.search.page++;
+    const { results, total_pages } = await fetchSearchQuery();
+
+    displayPagination(total_pages);
+
+    displaySearchResults(results, total_pages);
+  });
+
+  // Previous page
+  prevBtn.addEventListener('click', async () => {
+    global.search.page--;
+    const { results, total_pages } = await fetchSearchQuery();
+
+    displayPagination(total_pages);
+    displaySearchResults(results, total_pages);
+  });
+}
+
+function displayMatchesResults(results) {
+  const resultsHeader = document.querySelector('#search-results-heading');
+
+  const resultsText = document.createElement('div');
+
+  resultsText.innerHTML = `
+    <p>Showing ${results.length} of ${global.search.totlaResults} matches for ${global.search.term}</p>
+  `;
+
+  resultsHeader.appendChild(resultsText);
+}
+
 function displaySearchResults(results) {
   const resultsDiv = document.querySelector('#search-results');
+  const pagination = document.querySelector('#pagination');
+  const resultsHeading = document.querySelector('#search-results-heading');
+
+  resultsDiv.innerHTML = '';
+  pagination.innerHTML = '';
+  resultsHeading.innerHTML = '';
 
   results.forEach((result) => {
     const div = document.createElement('div');
     div.className = 'card';
 
-    //127.0.0.1:5501/movie-details.html?id=502356
-
-    http: div.innerHTML = `
+    div.innerHTML = `
     <a href='${
       global.search.type === 'tv' ? 'show' : 'movie'
     }-details.html?id=${result.id}'}>
@@ -407,6 +469,10 @@ function displaySearchResults(results) {
 
     resultsDiv.appendChild(div);
   });
+
+  displayMatchesResults(results);
+
+  displayPagination(global.search.totalPages);
 }
 
 // Custom Router
