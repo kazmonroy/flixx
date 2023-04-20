@@ -14,6 +14,22 @@ function hideSpinner() {
   spinner.classList.remove('show');
 }
 
+function addCommasToNumber(number) {
+  return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function displayCoverImage(type, backgroundPath) {
+  const overlayCover = document.createElement('div');
+  overlayCover.style.backgroundImage = `url(https://image.tmdb.org/t/p/original/${backgroundPath})`;
+  overlayCover.className = 'overlayCover';
+
+  if (type === 'movie') {
+    document.querySelector('#movie-details').appendChild(overlayCover);
+  } else if (type === 'show') {
+    document.querySelector('#show-details').appendChild(overlayCover);
+  }
+}
+
 async function getPopularMovies() {
   const res = await fetchDataFromAPI('movie/popular');
 
@@ -88,11 +104,14 @@ async function getPopularTVShows() {
 }
 
 async function displayMovieDetails() {
+  const type = 'movie';
   const movieID = window.location.search.split('=')[1];
 
-  const movieInfo = await fetchDataFromAPI(`movie/${movieID}`);
+  const movie = await fetchDataFromAPI(`${type}/${movieID}`);
 
-  console.log(movieInfo);
+  displayCoverImage(type, movie.backdrop_path);
+
+  console.log(movie);
 
   const movieDetailsContainer = document.querySelector('#movie-details');
 
@@ -106,31 +125,31 @@ async function displayMovieDetails() {
   <div class='img-container'>
     <img
       src=${
-        movieInfo.poster_path
-          ? `https://image.tmdb.org/t/p/w500${movieInfo.poster_path}`
+        movie.poster_path
+          ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
           : `../images/no-image.jpg`
       } 
       class="card-img-top"
-      alt=${movieInfo.original_title}
+      alt=${movie.original_title}
     />
   </div>
   <div>
-    <h2>${movieInfo.original_title}</h2>
+    <h2>${movie.original_title}</h2>
     <p>
       <i class="fas fa-star text-primary"></i>
-      8 / 10
+      ${Math.round(movie.vote_average * 10) / 10} / 10
     </p>
-    <p class="text-muted">Release Date: ${movieInfo.release_date}</p>
+    <p class="text-muted">Release Date: ${movie.release_date}</p>
     <p>
-      ${movieInfo.overview}
+      ${movie.overview}
     </p>
     <h5>Genres</h5>
     <ul class="list-group">
-    ${movieInfo.genres.map((genre) => `<li>${genre.name}</li>`).join('')}
+    ${movie.genres.map((genre) => `<li>${genre.name}</li>`).join('')}
      
     </ul>
     <a href=${
-      movieInfo.homepage
+      movie.homepage
     } target="_blank" class="btn">Visit Movie Homepage</a>
   </div>
     `;
@@ -138,21 +157,19 @@ async function displayMovieDetails() {
   divBottom.innerHTML = `
     <h2>Movie Info</h2>
           <ul>
-            <li><span class="text-secondary">Budget:</span> $${
-              movieInfo.budget
-            }</li>
-            <li><span class="text-secondary">Revenue:</span> $${
-              movieInfo.revenue
-            }</li>
+            <li><span class="text-secondary">Budget:</span> $${addCommasToNumber(
+              movie.budget
+            )}</li>
+            <li><span class="text-secondary">Revenue:</span> $${addCommasToNumber(
+              movie.revenue
+            )}</li>
             <li><span class="text-secondary">Runtime:</span> ${
-              movieInfo.runtime
+              movie.runtime
             } minutes</li>
-            <li><span class="text-secondary">Status:</span> ${
-              movieInfo.status
-            }}</li>
+            <li><span class="text-secondary">Status:</span> ${movie.status}</li>
           </ul>
           <h4>Production Companies</h4>
-          <div class="list-group">${movieInfo.production_companies
+          <div class="list-group">${movie.production_companies
             .map((company) => `<div>${company.name}</div>`)
             .join('')}</div>
       
@@ -200,7 +217,7 @@ function init() {
     case '/movie-details.html':
       displayMovieDetails();
       break;
-    case '/tv-details.html':
+    case '/show-details.html':
       console.log('TV details');
       break;
   }
