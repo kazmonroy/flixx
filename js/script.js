@@ -422,7 +422,9 @@ function displayMatchesResults(results) {
   const resultsText = document.createElement('div');
 
   resultsText.innerHTML = `
-    <p>Showing ${results.length} of ${global.search.totlaResults} matches for ${global.search.term}</p>
+    <p>Showing ${results.length} of ${
+    global.search.totlaResults
+  } matches for "${global.search.term.toUpperCase()}"</p>
   `;
 
   resultsHeader.appendChild(resultsText);
