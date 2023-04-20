@@ -87,6 +87,81 @@ async function getPopularTVShows() {
   });
 }
 
+async function displayMovieDetails() {
+  const movieID = window.location.search.split('=')[1];
+
+  const movieInfo = await fetchDataFromAPI(`movie/${movieID}`);
+
+  console.log(movieInfo);
+
+  const movieDetailsContainer = document.querySelector('#movie-details');
+
+  const divTop = document.createElement('div');
+  divTop.className = 'details-top';
+
+  const divBottom = document.createElement('div');
+  divBottom.className = 'details-bottom';
+
+  divTop.innerHTML = `
+  <div class='img-container'>
+    <img
+      src=${
+        movieInfo.poster_path
+          ? `https://image.tmdb.org/t/p/w500${movieInfo.poster_path}`
+          : `../images/no-image.jpg`
+      } 
+      class="card-img-top"
+      alt=${movieInfo.original_title}
+    />
+  </div>
+  <div>
+    <h2>${movieInfo.original_title}</h2>
+    <p>
+      <i class="fas fa-star text-primary"></i>
+      8 / 10
+    </p>
+    <p class="text-muted">Release Date: ${movieInfo.release_date}</p>
+    <p>
+      ${movieInfo.overview}
+    </p>
+    <h5>Genres</h5>
+    <ul class="list-group">
+    ${movieInfo.genres.map((genre) => `<li>${genre.name}</li>`).join('')}
+     
+    </ul>
+    <a href=${
+      movieInfo.homepage
+    } target="_blank" class="btn">Visit Movie Homepage</a>
+  </div>
+    `;
+
+  divBottom.innerHTML = `
+    <h2>Movie Info</h2>
+          <ul>
+            <li><span class="text-secondary">Budget:</span> $${
+              movieInfo.budget
+            }</li>
+            <li><span class="text-secondary">Revenue:</span> $${
+              movieInfo.revenue
+            }</li>
+            <li><span class="text-secondary">Runtime:</span> ${
+              movieInfo.runtime
+            } minutes</li>
+            <li><span class="text-secondary">Status:</span> ${
+              movieInfo.status
+            }}</li>
+          </ul>
+          <h4>Production Companies</h4>
+          <div class="list-group">${movieInfo.production_companies
+            .map((company) => `<div>${company.name}</div>`)
+            .join('')}</div>
+      
+    `;
+
+  movieDetailsContainer.appendChild(divTop);
+  movieDetailsContainer.appendChild(divBottom);
+}
+
 async function fetchDataFromAPI(endpoint) {
   const API_KEY = 'b33dca89af6efaab9ad190d254c151dc';
   const API_URL = 'https://api.themoviedb.org/3/';
@@ -123,7 +198,7 @@ function init() {
 
       break;
     case '/movie-details.html':
-      console.log('Movie details');
+      displayMovieDetails();
       break;
     case '/tv-details.html':
       console.log('TV details');
