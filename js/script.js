@@ -1,6 +1,17 @@
 const galleryContainer = document.querySelector('#gallery');
+const form = document.querySelector('.search-form');
 const global = {
   currentPage: window.location.pathname,
+  search: {
+    term: '',
+    type: '',
+    page: 1,
+    totalPages: 1,
+  },
+  api: {
+    API_KEY: 'b33dca89af6efaab9ad190d254c151dc',
+    API_URL: 'https://api.themoviedb.org/3/',
+  },
 };
 
 function addCommasToNumber(number) {
@@ -34,8 +45,6 @@ async function displaySlider() {
     swiperWrapper.appendChild(div);
     initSwiper();
   });
-
-  console.log(results);
 }
 
 function initSwiper() {
@@ -226,8 +235,6 @@ async function displayShowDetails() {
 
   const show = await fetchDataFromAPI(`${type}/${showID}`);
 
-  console.log(show);
-
   displayCoverImage(type, show.backdrop_path);
 
   const showDetailsContainer = document.querySelector('#show-details');
@@ -299,8 +306,8 @@ async function displayShowDetails() {
 }
 
 async function fetchDataFromAPI(endpoint) {
-  const API_KEY = 'b33dca89af6efaab9ad190d254c151dc';
-  const API_URL = 'https://api.themoviedb.org/3/';
+  const API_KEY = global.api.API_KEY;
+  const API_URL = global.api.API_URL;
 
   const response = await fetch(`${API_URL}${endpoint}?api_key=${API_KEY}`);
   const data = await response.json();
@@ -316,6 +323,90 @@ function highlightActivePage() {
       link.getAttribute('href') === global.currentPage &&
       link.classList.add('active')
   );
+}
+
+function showAlert(message, className) {
+  const alertDiv = document.querySelector('#alert');
+  const alertEl = document.createElement('div');
+  alertEl.className = `alert ${className}`;
+  const alertMessage = document.createTextNode(message);
+  alertEl.appendChild(alertMessage);
+
+  alertDiv.appendChild(alertEl);
+
+  setTimeout(() => alertEl.remove(), 3000);
+}
+
+async function fetchSearchQuery() {
+  const API_KEY = global.api.API_KEY;
+  const API_URL = global.api.API_URL;
+
+  const response = await fetch(
+    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&query=${global.search.term}`
+  );
+  const data = await response.json();
+
+  return data;
+}
+
+async function search() {
+  const query = window.location.search;
+  const urlParams = new URLSearchParams(query);
+  global.search.type = urlParams.get('type');
+  global.search.term = urlParams.get('search-term');
+
+  if (global.search.term !== '' && global.search.term !== null) {
+    const { results } = await fetchSearchQuery();
+    console.log(results);
+
+    if (results.length === 0) {
+      showAlert('No results found');
+      return;
+    }
+
+    displaySearchResults(results);
+  } else {
+    showAlert('Please enter a term', 'alert-error ');
+  }
+}
+
+function displaySearchResults(results) {
+  const resultsDiv = document.querySelector('#search-results');
+
+  results.forEach((result) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+
+    //127.0.0.1:5501/movie-details.html?id=502356
+
+    http: div.innerHTML = `
+    <a href='${
+      global.search.type === 'tv' ? 'show' : 'movie'
+    }-details.html?id=${result.id}'}>
+     <img src=${
+       result.poster_path
+         ? `https://image.tmdb.org/t/p/w500${result.poster_path}`
+         : `../images/no-image.jpg`
+     } class="card-img-top" alt=${
+      global.search.type === 'tv' ? result.name : result.original_title
+    } />
+    </a>
+    <div class="card-body">
+      <h5 class="card-title">${
+        global.search.type === 'tv' ? result.name : result.original_title
+      }</h5>
+      <p class="card-text">
+        <small class="text-muted">Release: ${
+          global.search.type === 'tv'
+            ? result.first_air_date
+            : result.release_date
+        }</small>
+      </p>
+    </div>
+    `;
+
+    resultsDiv.appendChild(div);
+  });
 }
 
 // Custom Router
@@ -336,6 +427,9 @@ function init() {
       break;
     case '/show-details.html':
       displayShowDetails();
+      break;
+    case '/search.html':
+      search();
       break;
   }
 
