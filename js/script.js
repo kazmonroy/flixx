@@ -1,20 +1,30 @@
-const popularMoviesGallery = document.querySelector('#popular-movies');
+const galleryContainer = document.querySelector('#gallery');
 const global = {
   currentPage: window.location.pathname,
 };
+
+function showSpinner() {
+  const spinner = document.querySelector('.spinner');
+
+  spinner.classList.add('show');
+}
+function hideSpinner() {
+  const spinner = document.querySelector('.spinner');
+
+  spinner.classList.remove('show');
+}
 
 async function getPopularMovies() {
   const res = await fetchDataFromAPI('movie/popular');
 
   const movies = res.results;
-  console.log(movies);
 
   movies.forEach((movie) => {
-    const movieCard = document.createElement('div');
-    movieCard.className = 'card';
-    movieCard.setAttribute('dataid', movie.id);
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.setAttribute('dataid', movie.id);
 
-    movieCard.innerHTML = `
+    card.innerHTML = `
 
     <a href="movie-details.html?id=${movie.id}">
       <img
@@ -33,40 +43,60 @@ async function getPopularMovies() {
         <small class="text-muted">Release: ${movie.release_date}</small>
       </p>
     </div>
-      
 
     `;
 
-    popularMoviesGallery.appendChild(movieCard);
+    galleryContainer.appendChild(card);
   });
+}
 
-  // const card = document.createElement('div');
+async function getPopularTVShows() {
+  const res = await fetchDataFromAPI('tv/popular');
 
-  // card.className = 'card';
+  const tvShows = res.results;
+  console.log(tvShows);
 
-  //   <div class="card">
-  //   <a href="movie-details.html?id=1">
-  //     <img
-  //       src="images/no-image.jpg"
-  //       class="card-img-top"
-  //       alt="Movie Title"
-  //     />
-  //   </a>
-  //   <div class="card-body">
-  //     <h5 class="card-title">Movie Title</h5>
-  //     <p class="card-text">
-  //       <small class="text-muted">Release: XX/XX/XXXX</small>
-  //     </p>
-  //   </div>
-  // </div>
+  tvShows.forEach((show) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.setAttribute('dataid', show.id);
+
+    card.innerHTML = `
+
+    <a href="show-details.html?id=${show.id}">
+      <img
+        src=${
+          show.poster_path
+            ? `https://image.tmdb.org/t/p/w500${show.poster_path}`
+            : `../images/no-image.jpg`
+        } 
+        class="card-img-top"
+        alt=${show.name}
+      />
+    </a>
+    <div class="card-body">
+      <h5 class="card-title">${show.name}</h5>
+      <p class="card-text">
+        <small class="text-muted">Aired: ${show.first_air_date}</small>
+      </p>
+    </div>
+
+    `;
+
+    galleryContainer.appendChild(card);
+  });
 }
 
 async function fetchDataFromAPI(endpoint) {
   const API_KEY = 'b33dca89af6efaab9ad190d254c151dc';
   const API_URL = 'https://api.themoviedb.org/3/';
 
+  // showSpinner();
+
   const response = await fetch(`${API_URL}${endpoint}?api_key=${API_KEY}`);
   const data = await response.json();
+
+  // hideSpinner();
   return data;
 }
 
@@ -80,6 +110,8 @@ function highlightActivePage() {
   );
 }
 
+// Custom Router
+
 function init() {
   switch (global.currentPage) {
     case '/':
@@ -87,7 +119,8 @@ function init() {
       getPopularMovies();
       break;
     case '/shows.html':
-      console.log('TV Shows');
+      getPopularTVShows();
+
       break;
     case '/movie-details.html':
       console.log('Movie details');
